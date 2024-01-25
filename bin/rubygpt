@@ -40,7 +40,7 @@ module ChatGPT
       print 'You: '
       user_input = gets.chomp
 
-      break if user_input.downcase == ':exit'
+      break if user_input.downcase == ':exit' || user_input.downcase == ':q'
 
       get_gpt_response(user_input)
     end
