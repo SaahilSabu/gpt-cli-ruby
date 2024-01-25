@@ -35,14 +35,18 @@ module ChatGPT
 
   def self.start_chat
     puts "Welcome to ChatGPT CLI!\nType ':exit' to quit."
-
+    if ARGV.any?
+      message = ARGV[0..].join(' ')
+      print("You: #{message}\n")
+      get_gpt_response(message)
+    end
+    
     loop do
       print 'You: '
-      user_input = gets.chomp
-
+      user_input = $stdin.gets.chomp
       break if user_input.downcase == ':exit' || user_input.downcase == ':q'
-
       get_gpt_response(user_input)
+
     end
 
     puts 'Goodbye! Have a great day.'
