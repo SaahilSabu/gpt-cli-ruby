@@ -2,7 +2,6 @@
 
 require 'dotenv'
 require 'openai'
-
 require 'ruby_gpt'
 
 config = RubyGpt.load_config
@@ -35,21 +34,26 @@ module ChatGPT
 
   def self.start_chat
     puts "Welcome to ChatGPT CLI!\nType ':exit' to quit."
-    if ARGV.any?
-      message = ARGV[0..].join(' ')
-      print("You: #{message}\n")
-      get_gpt_response(message)
-    end
-    
-    loop do
-      print 'You: '
-      user_input = $stdin.gets.chomp
-      break if user_input.downcase == ':exit' || user_input.downcase == ':q'
-      get_gpt_response(user_input)
 
+    begin
+      if ARGV.any?
+        message = ARGV.join(' ')
+        puts "You: #{message}"
+        get_gpt_response(message)
+        return
+      end
+      
+      loop do
+        print 'You: '
+        user_input = $stdin.gets.chomp
+        break if user_input.downcase == ':exit' || user_input.downcase == ':q'
+        get_gpt_response(user_input)
+      end
+    rescue Interrupt
+      puts "\nInterrupt detected. Exiting gracefully..."
+    ensure
+      puts 'Goodbye! Have a great day.'
     end
-
-    puts 'Goodbye! Have a great day.'
   end
 end
 
