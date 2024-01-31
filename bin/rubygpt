@@ -18,6 +18,10 @@ module ChatGPT
   @@client = OpenAI::Client.new
 
   def self.get_gpt_response(prompt)
+    in_code_block = false  # Flag to track if currently inside a code block
+    code_block_pattern = '```'
+    window = ''  # Initialize an empty window
+  
     print 'ChatGPT: '
     @@client.chat(
       parameters: {
@@ -25,34 +29,56 @@ module ChatGPT
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         stream: proc do |chunk, _bytesize|
-          print chunk.dig('choices', 0, 'delta', 'content')
+          response = chunk.dig('choices', 0, 'delta', 'content')
+  
+          if response
+            response.each_char.with_index do |char, index|
+              window += char  # Add the current character to the sliding window
+
+              if window[-3..] == code_block_pattern  # Check if the last 3 characters in the window match the pattern
+                in_code_block = !in_code_block
+                window = ''  # Reset the window after matching the pattern
+              elsif window.length > code_block_pattern.length
+                window = window[1..]  # Slide the window by removing the first character
+              end
+
+              print char unless in_code_block  # Print character if not in a code block
+              print "\e[32m" if in_code_block && char != '`'  # Change font color to green if in a code block and not a backtick
+              print "\e[0m" if !in_code_block && char == "\n"  # Reset font color at the end of line
+            end
+          end
         end
       }
     )
     puts "\n"
   end
+  
+  
+  
+
+  def self.process_argv
+    if ARGV.any?
+      message = ARGV.join(' ')
+      puts "You: #{message}"
+      get_gpt_response(message)
+      ARGV.clear
+      return
+    end
+  end
 
   def self.start_chat
     puts "Welcome to ChatGPT CLI!\nType ':exit' to quit."
 
-    begin
-      if ARGV.any?
-        message = ARGV.join(' ')
-        puts "You: #{message}"
-        get_gpt_response(message)
-        return
-      end
-      
-      loop do
-        print 'You: '
-        user_input = $stdin.gets.chomp
-        break if user_input.downcase == ':exit' || user_input.downcase == ':q'
-        get_gpt_response(user_input)
-      end
+    loop do
+      process_argv
+      print 'You: '
+      user_input = $stdin.gets.chomp
+      break if user_input.downcase == ':exit' || user_input.downcase == ':q'
+
+      get_gpt_response(user_input)
     rescue Interrupt
-      puts "\nInterrupt detected. Exiting gracefully..."
-    ensure
-      puts 'Goodbye! Have a great day.'
+      print "\n"
+      ARGV.clear
     end
   end
 end
